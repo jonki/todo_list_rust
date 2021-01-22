@@ -85,7 +85,7 @@ enum SCREEN {
     EDIT,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 struct Todo {
     todo: String,
     done: bool,
@@ -122,6 +122,7 @@ fn listen_key(
         Q = 113,
         X = 120,
         A = 97,
+        C = 99,
         D = 100,
         E = 101,
         ENTER = 10,
@@ -154,6 +155,8 @@ fn listen_key(
         do_undo(*cur_index, &mut todos, filename);
     } else if k == KEY::D as i32 {
         delete_todo(&mut cur_index, &mut todos, filename);
+    } else if k == KEY::C as i32 {
+        duplicate_todo(*cur_index, &mut todos, filename);
     } else if k == KEY::E as i32 || k == KEY::ENTER as i32 {
         if !todos.is_empty() {
             *screen = SCREEN::EDIT;
@@ -235,6 +238,12 @@ fn delete_todo(cur_index: &mut i32, todos: &mut Vec<Todo>, filename: &str) {
             *cur_index -= 1;
         }
     }
+
+    write_todo(&todos, filename);
+}
+
+fn duplicate_todo(cur_index: i32, todos: &mut Vec<Todo>, filename: &str) {
+    todos.push(todos[cur_index as usize].clone());
 
     write_todo(&todos, filename);
 }
