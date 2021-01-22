@@ -1,5 +1,5 @@
 /*
- * Author: Aseem Lalfakawma
+ * Original author: Aseem Lalfakawma
  * Website: https://github.com/alalfakawma
  * License: MIT
  */
@@ -15,6 +15,8 @@ use std::fs::OpenOptions;
 use std::io::prelude::*;
 use std::path::Path;
 
+type Todos = Vec<Todo>;
+
 fn main() {
     let filename = if let Some(arg1) = env::args().nth(1) {
         arg1
@@ -27,7 +29,7 @@ fn main() {
         .into_os_string()
         .into_string()
         .unwrap();
-    let mut todos: Vec<Todo> = Vec::new();
+    let mut todos: Todos = Vec::new();
     let mut cur_index: i32 = 0;
     let mut screen: SCREEN = SCREEN::MAIN; // Set the screen
 
@@ -117,11 +119,14 @@ fn listen_key(
     filename: &str,
 ) {
     enum KEY {
+        JJ = 74,
+        KK = 75,
         J = 106,
         K = 107,
         Q = 113,
         X = 120,
         A = 97,
+        // B = 98,
         C = 99,
         D = 100,
         E = 101,
@@ -157,6 +162,10 @@ fn listen_key(
         delete_todo(&mut cur_index, &mut todos, filename);
     } else if k == KEY::C as i32 {
         duplicate_todo(*cur_index, &mut todos, filename);
+    } else if k == KEY::JJ as i32 {
+        move_todo_up(&mut cur_index, &mut todos, filename);
+    } else if k == KEY::KK as i32 {
+        move_todo_down(&mut cur_index, &mut todos, filename);
     } else if k == KEY::E as i32 || k == KEY::ENTER as i32 {
         if !todos.is_empty() {
             *screen = SCREEN::EDIT;
@@ -248,6 +257,28 @@ fn delete_todo(cur_index: &mut i32, todos: &mut Vec<Todo>, filename: &str) {
 
 fn duplicate_todo(cur_index: i32, todos: &mut Vec<Todo>, filename: &str) {
     todos.push(todos[cur_index as usize].clone());
+
+    write_todo(&todos, filename);
+}
+
+fn move_todo_up(cur_index: &mut i32, todos: &mut Vec<Todo>, filename: &str) {
+    let move_to = *cur_index + 1;
+    if move_to < todos.len() as i32 {
+        let element = todos.remove(*cur_index as usize);
+        todos.insert(move_to as usize, element);
+        *cur_index += 1;
+    }
+
+    write_todo(&todos, filename);
+}
+
+fn move_todo_down(cur_index: &mut i32, todos: &mut Vec<Todo>, filename: &str) {
+    let move_to = *cur_index - 1;
+    if move_to > -1 as i32 {
+        let element = todos.remove(*cur_index as usize);
+        todos.insert(move_to as usize, element);
+        *cur_index -= 1;
+    }
 
     write_todo(&todos, filename);
 }
