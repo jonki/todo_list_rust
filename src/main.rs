@@ -66,12 +66,14 @@ fn main() {
                 );
             }
             SCREEN::ADD => {
-                show_add_input(&mut todos, &mut screen, bw, -1, &filename);
+                show_add_input(&mut todos, &mut screen, bw, -1);
             }
             SCREEN::EDIT => {
-                show_add_input(&mut todos, &mut screen, bw, cur_index, &filename);
+                show_add_input(&mut todos, &mut screen, bw, cur_index);
             }
         }
+
+        write_todo(&todos, &filename);
 
         refresh();
         clear();
@@ -100,15 +102,6 @@ impl Todo {
 
         cursor.to_string() + &format!("#{} ", i + 1) + &done.to_string() + &self.todo + "\n"
     }
-}
-
-fn add_todo(todo: &str, todos: &mut Vec<Todo>, filename: &str) {
-    todos.push(Todo {
-        todo: todo.to_string(),
-        done: false,
-    });
-
-    write_todo(&todos, filename);
 }
 
 fn listen_key(
@@ -155,21 +148,30 @@ fn listen_key(
     } else if k == KEY::A as i32 {
         // Add
         *screen = SCREEN::ADD;
-    } else if k == KEY::X as i32 {
-        // Do/Undo
-        do_undo(*cur_index, &mut todos, filename);
-    } else if k == KEY::D as i32 {
-        delete_todo(&mut cur_index, &mut todos, filename);
-    } else if k == KEY::C as i32 {
-        duplicate_todo(*cur_index, &mut todos, filename);
-    } else if k == KEY::JJ as i32 {
-        move_todo_up(&mut cur_index, &mut todos, filename);
-    } else if k == KEY::KK as i32 {
-        move_todo_down(&mut cur_index, &mut todos, filename);
     } else if k == KEY::E as i32 || k == KEY::ENTER as i32 {
         if !todos.is_empty() {
             *screen = SCREEN::EDIT;
         }
+    } else if k == KEY::X as i32 {
+        // Do/Undo
+        do_undo(*cur_index, &mut todos);
+    } else if k == KEY::D as i32 {
+        delete_todo(&mut cur_index, &mut todos);
+    } else if k == KEY::C as i32 {
+        duplicate_todo(*cur_index, &mut todos);
+    } else if k == KEY::JJ as i32 {
+        move_todo_up(&mut cur_index, &mut todos);
+    } else if k == KEY::KK as i32 {
+        move_todo_down(&mut cur_index, &mut todos);
+    }
+
+    if k == KEY::X as i32
+        || k == KEY::D as i32
+        || k == KEY::C as i32
+        || k == KEY::JJ as i32
+        || k == KEY::KK as i32
+    {
+        write_todo(&todos, filename);
     }
 }
 
@@ -178,7 +180,6 @@ fn show_add_input(
     screen: &mut SCREEN,
     window: WINDOW,
     mut cur_index: i32,
-    filename: &str,
 ) {
     let mut todo: String = if cur_index >= 0 {
         (*todos[cur_index as usize].todo).into()
@@ -186,6 +187,7 @@ fn show_add_input(
         String::new()
     };
     // let mut todo: String = String::new();
+
     addstr("Enter Todo: ");
 
     if cur_index >= 0 {
@@ -212,11 +214,11 @@ fn show_add_input(
     }
 
     if !todo.is_empty() && cur_index == -1 {
-        add_todo(&todo, &mut todos, filename);
+        add_todo(&todo, &mut todos);
     } else if !todo.is_empty() && cur_index >= 0 {
-        update_todo(&todo, &mut todos, cur_index, filename);
+        update_todo(&todo, &mut todos, cur_index);
     } else if todo.is_empty() && cur_index >= 0 {
-        delete_todo(&mut cur_index, &mut todos, filename);
+        delete_todo(&mut cur_index, &mut todos);
     }
 
     *screen = SCREEN::MAIN;
@@ -231,13 +233,11 @@ fn list_todos(todos: &[Todo], cur_index: i32) {
     }
 }
 
-fn do_undo(cur_index: i32, todos: &mut Vec<Todo>, filename: &str) {
+fn do_undo(cur_index: i32, todos: &mut Vec<Todo>) {
     todos[cur_index as usize].done = !todos[cur_index as usize].done;
-
-    write_todo(&todos, filename);
 }
 
-fn delete_todo(cur_index: &mut i32, todos: &mut Vec<Todo>, filename: &str) {
+fn delete_todo(cur_index: &mut i32, todos: &mut Vec<Todo>) {
     let length = todos.len() as i32;
 
     if length > 0 {
@@ -251,42 +251,39 @@ fn delete_todo(cur_index: &mut i32, todos: &mut Vec<Todo>, filename: &str) {
             *cur_index -= 1;
         }
     }
-
-    write_todo(&todos, filename);
 }
 
-fn duplicate_todo(cur_index: i32, todos: &mut Vec<Todo>, filename: &str) {
+fn duplicate_todo(cur_index: i32, todos: &mut Vec<Todo>) {
     todos.push(todos[cur_index as usize].clone());
-
-    write_todo(&todos, filename);
 }
 
-fn move_todo_up(cur_index: &mut i32, todos: &mut Vec<Todo>, filename: &str) {
+fn move_todo_up(cur_index: &mut i32, todos: &mut Vec<Todo>) {
     let move_to = *cur_index + 1;
     if move_to < todos.len() as i32 {
         let element = todos.remove(*cur_index as usize);
         todos.insert(move_to as usize, element);
         *cur_index += 1;
     }
-
-    write_todo(&todos, filename);
 }
 
-fn move_todo_down(cur_index: &mut i32, todos: &mut Vec<Todo>, filename: &str) {
+fn move_todo_down(cur_index: &mut i32, todos: &mut Vec<Todo>) {
     let move_to = *cur_index - 1;
     if move_to > -1 as i32 {
         let element = todos.remove(*cur_index as usize);
         todos.insert(move_to as usize, element);
         *cur_index -= 1;
     }
-
-    write_todo(&todos, filename);
 }
 
-fn update_todo(todo: &str, todos: &mut Vec<Todo>, cur_index: i32, filename: &str) {
+fn update_todo(todo: &str, todos: &mut Vec<Todo>, cur_index: i32) {
     todos[cur_index as usize].todo = todo.into();
+}
 
-    write_todo(&todos, filename);
+fn add_todo(todo: &str, todos: &mut Vec<Todo>) {
+    todos.push(Todo {
+        todo: todo.to_string(),
+        done: false,
+    });
 }
 
 fn open_json(filename: &str) -> String {
