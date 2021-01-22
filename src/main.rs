@@ -229,9 +229,13 @@ fn do_undo(cur_index: i32, todos: &mut Vec<Todo>, filename: &str) {
 }
 
 fn delete_todo(cur_index: &mut i32, todos: &mut Vec<Todo>, filename: &str) {
-    let len = todos.len() as i32;
-    todos.remove(*cur_index as usize);
-    if *cur_index == len - 1 {
+    let length = todos.len() as i32;
+
+    if length > 0 {
+        todos.remove(*cur_index as usize);
+    }
+
+    if *cur_index == length - 1 {
         if (*cur_index - 1) <= 0 {
             *cur_index = 0;
         } else {
